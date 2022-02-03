@@ -442,7 +442,7 @@ class Level_2 extends Scene {
     let cursors = this.input.keyboard.createCursorKeys();
     if (spaceBar.isDown && bearWalk.gameOver) {
       this.scene.restart("bootLevel_2", {
-        loadMap: this.loadMap,
+        loadMap: 1,
         score: 0,
       });
     }
@@ -484,6 +484,12 @@ class Level_2 extends Scene {
       bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
     }
     //jump
+    if (cursors.up.isDown && bearWalk.gameOver) {
+      this.scene.restart("bootLevel_2", {
+        loadMap: 1,
+        score: 0,
+      });
+    }
     if (
       cursors.up.isDown &&
       bearWalk.body.onFloor() &&
