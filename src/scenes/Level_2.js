@@ -1,9 +1,15 @@
 import { Scene } from "phaser";
+import drawEndbox from "./drawEndbox";
+import drawGameOver from "./drawGameOver";
 let bearWalk;
+let score;
+let baseScore;
+let thisContext;
 let penguins;
 let deadPenguins = 0;
 let penguinCounter = 0;
 let scoreText;
+let exitPoint;
 let fishText;
 let healthBar = [];
 //how many initial penguins?
@@ -12,15 +18,42 @@ let hitSpeed = 50;
 const penguinVision = 100;
 const minimumFollowDistance = 50;
 let spawnpoint = { x: 50, y: 330 };
-let exitPoint;
-class GameScene extends Scene {
+let map;
+class Level_2 extends Scene {
   constructor() {
-    super("scene-game");
+    super("level_2");
   }
 
+  init(data) {
+    if (healthBar) {
+      healthBar.length = 0;
+    }
+    deadPenguins = 0;
+    console.log("init", data);
+    if (data?.data?.loadMap) this.loadMap = data.data.loadMap;
+    if (!this?.loadMap) {
+      this.loadMap = 1;
+    }
+    if (data?.data?.score) {
+      baseScore = data.data.score;
+    }
+    if (!baseScore) {
+      baseScore = 0;
+    }
+    console.log(baseScore);
+    score = 0;
+    console.log("loadMap", this.loadMap);
+  }
   create() {
+    thisContext = this;
+    if (this.loadMap && this.loadMap < 5) {
+      map = this.make.tilemap({ key: `map${this.loadMap}` });
+    } else {
+      map = this.make.tilemap({ key: "map1" });
+    }
+    spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
     this.add.image(300, 200, "sky").setScale(3).setScrollFactor(0.3);
-    const map = this.make.tilemap({ key: "map1" });
+    // const tiles = map.addTilesetImage("mario-tiles");
     const tileset = map.addTilesetImage("iceTiles_001", "tiles");
     const worldLayer = map.createLayer("Platforms", tileset, 0, 0);
     spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
@@ -34,10 +67,6 @@ class GameScene extends Scene {
       "door"
     );
 
-    // exitPoint.geom.setTo(exitpointLocation.x, exitpointLocation.y, 32, 32);
-    console.log(exitPoint);
-
-    // const tiles = map.addTilesetImage("mario-tiles");
     worldLayer.setCollisionByProperty({ collides: true });
     worldLayer.width = 400;
     //degine width/height
@@ -156,12 +185,36 @@ class GameScene extends Scene {
       let y = 0;
       penguins.push(this.physics.add.sprite(x, y, "penguin"));
     }
-    var mainCamera = this.cameras.main;
-    function endGameHandler(thisContext) {
-      mainCamera.shake(250);
-      const height = thisContext.game.height;
-      thisContext.scene.stop("scene-game");
-      thisContext.scene.start("bootLevel_2", { loadMap: 2 });
+    let mainCamera = this.cameras.main;
+
+    function endGameHandler(endContext) {
+      if (!endContext) {
+        endContext = thisContext;
+      }
+      if (!score) {
+        score = 0;
+      }
+      score = baseScore + bearWalk.fish * 1000 - deadPenguins * 250;
+
+      endContext.scene.start("bootLevel_2", {
+        loadMap: endContext.loadMap + 1,
+        score: score,
+      });
+    }
+
+    function endGameContextHandler(gameContext) {
+      console.log(gameContext);
+      const gameRestartTimer = gameContext.time.addEvent({
+        delay: 3500, // ms
+        callback: endGameHandler,
+        //args: [],
+        loop: false,
+      });
+      // endGameHandler(gameContext);
+      for (let i; i < penguins.length; i++) {
+        penguins[i].disableBody(true, false);
+      }
+      bearWalk.disableBody(true, false);
     }
 
     const collisionHandler = (bear, penguin) => {
@@ -181,7 +234,7 @@ class GameScene extends Scene {
           loop: false,
         });
         penguin.dead = true;
-      } else if (!bearWalk.hurt) {
+      } else if (!bearWalk.hurt && !bearWalk.gameOver) {
         bearWalk.hurt = true;
         bearWalk.play("bear-hit", true);
         const timer = this.time.addEvent({
@@ -200,24 +253,37 @@ class GameScene extends Scene {
           healthBar.splice(bearWalk.fish, 1);
         }
         if (bearWalk.fish <= 0) {
-          endGameHandler(this);
+          bearWalk.gameOver = true;
+          drawGameOver(
+            deadPenguins,
+            bearWalk.fish,
+            this.loadMap,
+            thisContext,
+            baseScore,
+            null
+          );
         }
       }
     };
-    const exitHandler = (bear, exit) => {
+
+    const exitHandler = (bear, exit, context) => {
+      console.log(context);
       console.log("collision");
-      this.scene.pause();
-      this.add.rectangle(200, 150, 300, 200, 0x6666ff).setScrollFactor(0);
-      this.add.text(120, 75, "Level Complete").setScrollFactor(0);
-      this.add.text(120, 150, "You made it home with").setScrollFactor(0);
-      this.add.text(120, 165, bear.fish + " fish!").setScrollFactor(0);
-      if (deadPenguins == 0) {
-        this.add.text(120, 180, "You didn't kill", {}).setScrollFactor(0);
-        this.add.text(120, 195, "ANY penguins!", {}).setScrollFactor(0);
-      } else {
-        this.add.text(100, 180, "You've only killed ").setScrollFactor(0);
-        this.add.text(130, 195, deadPenguins + " penguins!").setScrollFactor(0);
+      // this.scene.pause();
+      console.log("thisContext:", thisContext);
+      if (!score) {
+        score = 0;
       }
+      score = +baseScore + bearWalk.fish * 1000 - deadPenguins * 250;
+      drawEndbox(
+        deadPenguins,
+        bearWalk.fish,
+        this.loadMap,
+        thisContext,
+        score,
+        endGameContextHandler
+      );
+      endGameContextHandler(this);
     };
     //make things collide
     this.physics.add.collider(worldLayer, bearWalk);
@@ -251,17 +317,21 @@ class GameScene extends Scene {
   }
 
   update() {
+    thisContext = this;
+
     scoreText.setText("dead penguins: " + deadPenguins);
     scoreText.displayOriginX = -20;
     fishText.setText("fish remaining: " + bearWalk.fish);
     fishText.displayOriginX = -200;
+    // console.log(bearWalk.fish);
 
+    // console.log(this.cameras.main);
     penguinCounter++;
-
+    // console.log(penguinCounter);
     const attackHandler = () => {
       if (!bearWalk.attacking) {
         bearWalk.attacking = true;
-        const timer = this.time.addEvent({
+        const attackTimer = this.time.addEvent({
           delay: 650, // ms
           callback: () => {
             bearWalk.attacking = false;
@@ -274,10 +344,11 @@ class GameScene extends Scene {
         bearWalk.play("bear-attack");
         bearWalk.setSize(12, 16);
         if (bearWalk.flipX == true) {
-          bearWalk.setOffset(2, 0);
+          bearWalk.setOffset(-6, 0);
         } else {
-          bearWalk.setOffset(8, 0);
+          bearWalk.setOffset(12, 0);
         }
+        bearWalk.set;
       }
     };
     const penguinHandler = () => {
@@ -306,9 +377,7 @@ class GameScene extends Scene {
             if (!(penguinCounter % 400)) {
               penguin.setFlipX(Math.floor(Math.random() * 2));
             }
-            //40% chance to stand still,
-            //20% chance to walk away,
-            //and 40% chance to approach you.
+            // console.log("move:", move);
             if (move == 1) {
               penguin.setVelocityX(0);
               penguin.play("penguin-idle", true);
@@ -337,7 +406,7 @@ class GameScene extends Scene {
             }
           }
         };
-        //if the penguin can see the bear, they keep their eyes on him.
+
         var dx = bearWalk.x - penguin.x;
         if (Math.abs(dx) < penguinVision) {
           if (dx < 0) {
@@ -347,7 +416,7 @@ class GameScene extends Scene {
             penguin.setFlipX(true);
           }
         }
-        //if you are within the minimum follow distance, the penguin will come for you continuously.
+
         if (Math.abs(dx) < minimumFollowDistance) {
           penguin.setVelocityX(Math.sign(dx) * 15);
           penguin.play("penguin-walk", true);
@@ -371,7 +440,12 @@ class GameScene extends Scene {
 
     //bind keys
     let cursors = this.input.keyboard.createCursorKeys();
-
+    if (spaceBar.isDown && bearWalk.gameOver) {
+      this.scene.restart("bootLevel_2", {
+        loadMap: this.loadMap,
+        score: 0,
+      });
+    }
     //attack spacebar
     if (spaceBar.isDown && bearWalk.body.onFloor()) {
       attackHandler();
@@ -395,7 +469,7 @@ class GameScene extends Scene {
       }
       bearWalk.setFlipX(false);
     } else {
-      //else idle
+      //ekse idle
       bearWalk.setVelocityX(0);
       if (
         bearWalk.body.onFloor() &&
@@ -420,6 +494,13 @@ class GameScene extends Scene {
         bearWalk.play("bear-jump", true);
       }
     }
+    // console.log(this.cameras.main._scrollX);
+
+    // const textbox = this.add.text(
+    //   this.cameras.main._scrollX,
+    //   this.cameras.main._scrollY,
+    //   "Hello World"
+    // );
   }
 }
-export default GameScene;
+export default Level_2;

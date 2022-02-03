@@ -2,6 +2,8 @@ import "./main.css";
 import Phaser, { Game } from "phaser";
 import BootScene from "./scenes/BootScene";
 import GameScene from "./scenes/GameScene";
+import Level_2 from "./scenes/Level_2";
+import BootLevel_2 from "./scenes/BootLevel_2";
 
 const canvas = document.getElementById("game-canvas");
 const config = {
@@ -18,7 +20,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootScene, GameScene],
+  scene: [BootLevel_2, Level_2],
 };
 
 const game = new Game(config);
