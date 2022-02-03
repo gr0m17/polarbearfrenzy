@@ -12,6 +12,7 @@ class BootLevel_2 extends Scene {
     this.load.tilemapTiledJSON("map2", "./assets/level_002.json");
     this.load.tilemapTiledJSON("map3", "./assets/level_003.json");
     this.load.tilemapTiledJSON("map4", "./assets/level_004.json");
+    this.load.tilemapTiledJSON("map5", "./assets/level_005.json");
     // Load any assets here from your assets directory
     this.load.image("fish", "./assets/fish.png");
     this.load.image("fish-half", "./assets/fish_half.png");
