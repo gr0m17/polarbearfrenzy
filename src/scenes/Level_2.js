@@ -254,6 +254,7 @@ class Level_2 extends Scene {
         }
         if (bearWalk.fish <= 0) {
           bearWalk.gameOver = true;
+          bearWalk.disableBody(true, true);
           drawGameOver(
             deadPenguins,
             bearWalk.fish,
@@ -484,12 +485,7 @@ class Level_2 extends Scene {
       bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
     }
     //jump
-    if (cursors.up.isDown && bearWalk.gameOver) {
-      this.scene.restart("bootLevel_2", {
-        loadMap: 1,
-        score: 0,
-      });
-    }
+
     if (
       cursors.up.isDown &&
       bearWalk.body.onFloor() &&
