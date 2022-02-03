@@ -46,11 +46,16 @@ class Level_2 extends Scene {
   }
   create() {
     thisContext = this;
-    if (this.loadMap && this.loadMap < 5) {
+    if (this.loadMap && this.loadMap < 6) {
       map = this.make.tilemap({ key: `map${this.loadMap}` });
-    } else {
+    }
+    if (this.loadMap && this.loadMap >= 6) {
+      map = this.make.tilemap({ key: `map${(this.loadMap % 6) + 1}` });
+    }
+    if (!this.loadMap) {
       map = this.make.tilemap({ key: "map1" });
     }
+
     spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
     this.add.image(300, 200, "sky").setScale(3).setScrollFactor(0.3);
     // const tiles = map.addTilesetImage("mario-tiles");
