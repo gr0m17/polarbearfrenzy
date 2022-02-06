@@ -1,7 +1,6 @@
 import "./main.css";
 import Phaser, { Game } from "phaser";
-import BootScene from "./scenes/BootScene";
-import GameScene from "./scenes/GameScene";
+
 import Level_2 from "./scenes/Level_2";
 import BootLevel_2 from "./scenes/BootLevel_2";
 

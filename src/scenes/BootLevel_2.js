@@ -40,6 +40,10 @@ class BootLevel_2 extends Scene {
       frameWidth: 16,
       frameHeight: 16,
     });
+    this.load.spritesheet("penguin-slide", "./assets/penguin_slide_001.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
     this.load.spritesheet("bear-idle", "./assets/bear_idle_001.png", {
       frameWidth: 16,
       frameHeight: 16,
@@ -62,6 +66,22 @@ class BootLevel_2 extends Scene {
     });
     this.load.spritesheet("bear-loser", "./assets/bear_loser_001.png", {
       frameWidth: 16,
+      frameHeight: 16,
+    });
+    this.load.spritesheet("bear-catching", "./assets/bear_catching_001.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet("bear-fishing", "./assets/bear_fishing_001.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet("bear-casting", "./assets/bear_casting_001.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet("water-splash", "./assets/water_splash_001.png", {
+      frameWidth: 32,
       frameHeight: 16,
     });
   }

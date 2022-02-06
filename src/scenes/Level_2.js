@@ -8,9 +8,14 @@ let thisContext;
 let penguins;
 let deadPenguins = 0;
 let penguinCounter = 0;
+let splashpointLocation;
+let splashPoint;
+let splashPointFish;
 let scoreText;
 let exitPoint;
 let fishText;
+let introAnimation;
+let introAnimationPlaying = false;
 let healthBar = [];
 //how many initial penguins?
 const initPenguins = 20;
@@ -25,6 +30,8 @@ class Level_2 extends Scene {
   }
 
   init(data) {
+    introAnimation = true;
+    introAnimationPlaying = false;
     if (healthBar) {
       healthBar.length = 0;
     }
@@ -50,7 +57,7 @@ class Level_2 extends Scene {
       map = this.make.tilemap({ key: `map${this.loadMap}` });
     }
     if (this.loadMap && this.loadMap >= 6) {
-      map = this.make.tilemap({ key: `map${(this.loadMap % 6) + 1}` });
+      map = this.make.tilemap({ key: `map${(this.loadMap % 5) + 1}` });
     }
     if (!this.loadMap) {
       map = this.make.tilemap({ key: "map1" });
@@ -71,6 +78,19 @@ class Level_2 extends Scene {
       exitpointLocation.y,
       "door"
     );
+    splashpointLocation = map.findObject(
+      "Objects",
+      (obj) => obj.name === "splashPoint"
+    );
+    splashPoint = this.physics.add.sprite(
+      splashpointLocation.x,
+      splashpointLocation.y,
+      "water-splash"
+    );
+    splashPointFish = this.physics.add
+      .image(splashpointLocation.x, splashpointLocation.y, "fish")
+      .setScale(2);
+    splashPointFish.body.setAllowGravity(false);
 
     worldLayer.setCollisionByProperty({ collides: true });
     worldLayer.width = 400;
@@ -85,7 +105,7 @@ class Level_2 extends Scene {
 
     //map the animations
 
-    //bear
+    //door animation
     this.anims.create({
       key: "door",
       frames: this.anims.generateFrameNumbers("door", {
@@ -93,6 +113,46 @@ class Level_2 extends Scene {
         end: 0,
       }),
     });
+
+    //fishing
+    this.anims.create({
+      key: "bear-casting",
+      frames: this.anims.generateFrameNumbers("bear-casting", {
+        start: 0,
+        end: 9,
+      }),
+      frameRate: 5,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "water-splash",
+      frames: this.anims.generateFrameNumbers("water-splash", {
+        start: 0,
+        end: 6,
+      }),
+      frameRate: 10,
+      repeat: 0,
+    });
+
+    this.anims.create({
+      key: "bear-fishing",
+      frames: this.anims.generateFrameNumbers("bear-fishing", {
+        start: 0,
+        end: 6,
+      }),
+      frameRate: 3,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "bear-catching",
+      frames: this.anims.generateFrameNumbers("bear-catching", {
+        start: 0,
+        end: 7,
+      }),
+      frameRate: 5,
+      repeat: 0,
+    });
+    //bear
     this.anims.create({
       key: "bear-loser",
       frames: this.anims.generateFrameNumbers("bear-loser", {
@@ -158,7 +218,15 @@ class Level_2 extends Scene {
       frameRate: 3,
       repeat: -1,
     });
-
+    this.anims.create({
+      key: "penguin-slide",
+      frames: this.anims.generateFrameNumbers("penguin-slide", {
+        start: 0,
+        end: 2,
+      }),
+      frameRate: 3,
+      repeat: 0,
+    });
     this.anims.create({
       key: "penguin-walk",
       frames: this.anims.generateFrameNumbers("penguin", { start: 0, end: 3 }),
@@ -185,11 +253,30 @@ class Level_2 extends Scene {
     bearWalk.setScale(2);
     penguins = [];
     //produce the penguins at random locations across 1000 pixels
-    for (let i = 0; i < initPenguins; i++) {
-      let x = Math.floor(Math.random() * 1000);
-      let y = 0;
-      penguins.push(this.physics.add.sprite(x, y, "penguin"));
-    }
+    spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
+
+    const gameObjectsToObjectPoints = (gameObjects) => {
+      return gameObjects.map((gameObject) => gameObject);
+    };
+    const initPenguins = () => {
+      const penguinSpawns = gameObjectsToObjectPoints(
+        map.filterObjects("Objects", (obj) => obj.name === "penguinSpawner")
+      );
+      penguins = penguinSpawns.map((penguinSpawn) =>
+        this.physics.add
+          .sprite(penguinSpawn.x, penguinSpawn.y, "penguin")
+          .setSize(12, 12)
+          .setOffset(2, 4)
+      );
+    };
+    initPenguins();
+    // for (let i = 0; i < initPenguins; i++) {
+    //   let x = Math.floor(Math.random() * 1000);
+    //   let y = 0;
+    //   penguins.push(
+    //     this.physics.add.sprite(x, y, "penguin").setSize(12, 12).setOffset(2, 4)
+    //   );
+    // }
     let mainCamera = this.cameras.main;
 
     function endGameHandler(endContext) {
@@ -229,7 +316,7 @@ class Level_2 extends Scene {
         } else {
           penguin.setVelocityX(Math.floor(Math.random() * hitSpeed));
         }
-        const slideTimer = this.time.addEvent({
+        const deathSlideTimer = this.time.addEvent({
           delay: 400, // ms
           callback: () => {
             penguin.setVelocityX(0);
@@ -321,7 +408,6 @@ class Level_2 extends Scene {
       }
     }
   }
-
   update() {
     thisContext = this;
 
@@ -385,20 +471,31 @@ class Level_2 extends Scene {
             }
             // console.log("move:", move);
             if (move == 1) {
-              penguin.setVelocityX(0);
-              penguin.play("penguin-idle", true);
+              penguin.flipX
+                ? penguin.setVelocityX(25)
+                : penguin.setVelocityX(-25);
+              penguin.play("penguin-slide", true);
+              penguin.setSize(16, 9);
+              penguin.setOffset(0, 8);
+              // penguin.setVelocityX(0);
             }
             if (move == 2) {
               penguin.setVelocityX(-10);
               penguin.play("penguin-walk", true);
+              penguin.setSize(12, 12);
+              penguin.setOffset(2, 4);
             }
             if (move == 3) {
               penguin.setVelocityX(0);
               penguin.play("penguin-idle", true);
+              penguin.setSize(12, 12);
+              penguin.setOffset(2, 4);
             }
             if (move == 4) {
               penguin.setVelocityX(10);
               penguin.play("penguin-walk", true);
+              penguin.setSize(12, 12);
+              penguin.setOffset(2, 4);
             }
             if (move == 5) {
               if (dx < 0) {
@@ -409,6 +506,8 @@ class Level_2 extends Scene {
               }
 
               penguin.play("penguin-walk", true);
+              penguin.setSize(12, 12);
+              penguin.setOffset(2, 4);
             }
           }
         };
@@ -424,90 +523,189 @@ class Level_2 extends Scene {
         }
 
         if (Math.abs(dx) < minimumFollowDistance) {
-          penguin.setVelocityX(Math.sign(dx) * 15);
-          penguin.play("penguin-walk", true);
+          if (!(penguinCounter % 100)) {
+            if (Math.floor(Math.random() * 3) == 3) {
+              penguin.flipX
+                ? penguin.setVelocityX(25)
+                : penguin.setVelocityX(-25);
+              penguin.play("penguin-slide", true);
+              penguin.setSize(16, 9);
+              penguin.setOffset(0, 8);
+              // penguin.setVelocityX(0);
+            } else {
+              penguin.setVelocityX(Math.sign(dx) * 15);
+              penguin.play("penguin-walk", true);
+              penguin.setSize(12, 12);
+              penguin.setOffset(2, 4);
+            }
+          }
         }
         if (Math.abs(dx) > minimumFollowDistance) {
           penguinIdle();
         }
       });
     };
-    penguinHandler();
+    if (!introAnimation) {
+      penguinHandler();
 
-    //
-    //
-    //controls
-    //
-    //
+      //
+      //
+      //controls
+      //
+      //
 
-    var spaceBar = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
+      var spaceBar = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+      );
 
-    //bind keys
-    let cursors = this.input.keyboard.createCursorKeys();
-    if (spaceBar.isDown && bearWalk.gameOver) {
-      this.scene.restart("bootLevel_2", {
-        loadMap: 1,
-        score: 0,
-      });
-    }
-    //attack spacebar
-    if (spaceBar.isDown && bearWalk.body.onFloor()) {
-      attackHandler();
-    }
-    if (cursors.left.isDown && bearWalk.attacking == false) {
-      //left arrow
-      bearWalk.setVelocityX(-160);
-      if (bearWalk.body.onFloor()) {
-        if (bearWalk.hurt == false) {
-          bearWalk.play("bear-walk", true);
+      //bind keys
+      let cursors = this.input.keyboard.createCursorKeys();
+      if (spaceBar.isDown && bearWalk.gameOver) {
+        this.scene.restart("bootLevel_2", {
+          loadMap: 1,
+          score: 0,
+        });
+      }
+      //attack spacebar
+      if (spaceBar.isDown && bearWalk.body.onFloor()) {
+        attackHandler();
+      }
+      if (cursors.left.isDown && bearWalk.attacking == false) {
+        //left arrow
+        bearWalk.setVelocityX(-160);
+        if (bearWalk.body.onFloor()) {
+          if (bearWalk.hurt == false) {
+            bearWalk.play("bear-walk", true);
+          }
+        }
+        bearWalk.setFlipX(true);
+      } else if (cursors.right.isDown && bearWalk.attacking == false) {
+        //right arrow
+        bearWalk.setVelocityX(160);
+        if (bearWalk.body.onFloor()) {
+          if (bearWalk.hurt == false) {
+            bearWalk.play("bear-walk", true);
+          }
+        }
+        bearWalk.setFlipX(false);
+      } else {
+        //ekse idle
+        bearWalk.setVelocityX(0);
+        if (
+          bearWalk.body.onFloor() &&
+          bearWalk.attacking == false &&
+          bearWalk.hurt == false
+        ) {
+          bearWalk.play("bear-idle", true);
         }
       }
-      bearWalk.setFlipX(true);
-    } else if (cursors.right.isDown && bearWalk.attacking == false) {
-      //right arrow
-      bearWalk.setVelocityX(160);
-      if (bearWalk.body.onFloor()) {
-        if (bearWalk.hurt == false) {
-          bearWalk.play("bear-walk", true);
-        }
+      // if bear falls off planet, respawn
+      if (bearWalk.body.position.y > 1000) {
+        bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
       }
-      bearWalk.setFlipX(false);
-    } else {
-      //ekse idle
-      bearWalk.setVelocityX(0);
+      //jump
+
       if (
+        cursors.up.isDown &&
         bearWalk.body.onFloor() &&
-        bearWalk.attacking == false &&
-        bearWalk.hurt == false
+        bearWalk.attacking == false
       ) {
-        bearWalk.play("bear-idle", true);
+        bearWalk.setVelocityY(-250);
+        if (bearWalk.hurt == false) {
+          bearWalk.play("bear-jump", true);
+        }
       }
-    }
-    // if bear falls off planet, respawn
-    if (bearWalk.body.position.y > 1000) {
-      bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
-    }
-    //jump
+      // console.log(this.cameras.main._scrollX);
 
-    if (
-      cursors.up.isDown &&
-      bearWalk.body.onFloor() &&
-      bearWalk.attacking == false
-    ) {
-      bearWalk.setVelocityY(-250);
-      if (bearWalk.hurt == false) {
-        bearWalk.play("bear-jump", true);
+      // const textbox = this.add.text(
+      //   this.cameras.main._scrollX,
+      //   this.cameras.main._scrollY,
+      //   "Hello World"
+      // );
+    }
+    const introHandler = () => {
+      if (introAnimation == true) {
+        let animationDelay = 1000;
+
+        splashPoint.body.setAllowGravity(false);
+
+        //locate the splash for casting
+        var directionX = bearWalk.x - splashPoint.x;
+        console.log(bearWalk.x);
+        console.log(splashPoint.x);
+
+        if (directionX < 0) {
+          bearWalk.setFlipX(false);
+        }
+        if (directionX > 0) {
+          bearWalk.setFlipX(true);
+        }
+
+        if (introAnimationPlaying == false) {
+          bearWalk.play("bear-casting", true).setSize(16, 16).setOffset(4, 16);
+          const castingTimer = this.time.addEvent({
+            delay: animationDelay + 100, // ms
+            callback: () => {
+              // bearWalk.setImmovable(true).body.setAllowGravity(false);
+              splashPoint.play("water-splash", true);
+            },
+            //args: [],
+            loop: false,
+          });
+
+          const catchingTimer = this.time.addEvent({
+            delay: animationDelay + 4000, // ms
+            callback: () => {
+              splashPoint.body.destroy();
+              bearWalk
+                .play("bear-catching", true)
+                .setSize(16, 16)
+                .setOffset(4, 16);
+              this.tweens.add({
+                targets: splashPointFish,
+                x: bearWalk.x - 25,
+                y: bearWalk.y,
+                angle: -25,
+                duration: 300,
+              });
+            },
+            //args: [],
+            loop: false,
+          });
+          const fishDeletingTimer = this.time.addEvent({
+            delay: animationDelay + 4800, // ms
+            callback: () => {
+              splashPointFish.destroy();
+            },
+            //args: [],
+            loop: false,
+          });
+          const fishingTimer = this.time.addEvent({
+            delay: animationDelay + 1000, // ms
+            callback: () => {
+              bearWalk
+                .play("bear-fishing", true)
+                .setSize(16, 16)
+                .setOffset(4, 16);
+            },
+            //args: [],
+            loop: false,
+          });
+          const enderTimer = this.time.addEvent({
+            delay: animationDelay + 6000, // ms
+            callback: () => {
+              introAnimation = false;
+              bearWalk.play("bear-idle").setSize(16, 16).setOffset(0, 0);
+            },
+            //args: [],
+            loop: false,
+          });
+        }
+        introAnimationPlaying = true;
       }
-    }
-    // console.log(this.cameras.main._scrollX);
-
-    // const textbox = this.add.text(
-    //   this.cameras.main._scrollX,
-    //   this.cameras.main._scrollY,
-    //   "Hello World"
-    // );
+    };
+    introHandler();
   }
 }
+
 export default Level_2;
