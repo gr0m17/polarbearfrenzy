@@ -1,6 +1,8 @@
 import { Scene } from "phaser";
 import drawEndbox from "./drawEndbox";
 import drawGameOver from "./drawGameOver";
+let fontName = "squaredance10";
+let fontSize = 12;
 let bearWalk;
 let score;
 let baseScore;
@@ -12,8 +14,10 @@ let splashpointLocation;
 let splashPoint;
 let splashPointFish;
 let scoreText;
+let currentScoreText;
 let exitPoint;
 let fishText;
+let attachedText;
 let introAnimation;
 let introAnimationPlaying = false;
 let healthBar = [];
@@ -30,77 +34,112 @@ class Level_2 extends Scene {
   }
 
   init(data) {
+    //setup the intro scene variables
     introAnimation = true;
     introAnimationPlaying = false;
+    //delete all fish in the healthbar for reset
     if (healthBar) {
       healthBar.length = 0;
     }
+    //reset deadPenguins counter for level
     deadPenguins = 0;
     console.log("init", data);
+    //process data payload, if any.
+    //what map is this to be?
     if (data?.data?.loadMap) this.loadMap = data.data.loadMap;
+    //if no map, map == 1
     if (!this?.loadMap) {
       this.loadMap = 1;
     }
+
+    //recieve current score
     if (data?.data?.score) {
       baseScore = data.data.score;
     }
+    //if none then == 0
     if (!baseScore) {
       baseScore = 0;
     }
+    //set the current level score counter to 0
     console.log(baseScore);
     score = 0;
     console.log("loadMap", this.loadMap);
   }
   create() {
+    //pointer for context for reasons.
     thisContext = this;
+    //todo: manage level looping based on an array of levels
+    //loops through the levels after playing through them once.
     if (this.loadMap && this.loadMap < 6) {
       map = this.make.tilemap({ key: `map${this.loadMap}` });
     }
     if (this.loadMap && this.loadMap >= 6) {
       map = this.make.tilemap({ key: `map${(this.loadMap % 5) + 1}` });
     }
+    // if somehow you get here without a loadmap then load level 1
     if (!this.loadMap) {
       map = this.make.tilemap({ key: "map1" });
     }
-
+    //find the spawn point from the json map
     spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
+    //print background image
+    //todo: background images based on json level
     this.add.image(300, 200, "sky").setScale(3).setScrollFactor(0.3);
-    // const tiles = map.addTilesetImage("mario-tiles");
+    //print the map onto the screen from the json map with the loaded iceTiles
     const tileset = map.addTilesetImage("iceTiles_001", "tiles");
     const worldLayer = map.createLayer("Platforms", tileset, 0, 0);
-    spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
+
+    //load the exit point for the level from the json map.
     let exitpointLocation = map.findObject(
       "Objects",
       (obj) => obj.name === "exitPoint"
     );
+    //spawn the exit point.
+    //todo: animate the door.
     exitPoint = this.physics.add.sprite(
       exitpointLocation.x,
       exitpointLocation.y,
       "door"
     );
+    //load the splashPoint from the json for the intro animation.
     splashpointLocation = map.findObject(
       "Objects",
       (obj) => obj.name === "splashPoint"
     );
+    //spawn the splash animation from the sprite.
     splashPoint = this.physics.add.sprite(
       splashpointLocation.x,
       splashpointLocation.y,
       "water-splash"
     );
+    //spawn the prop fish under the splash point.
+    //todo: animate the fish around the bait initially
     splashPointFish = this.physics.add
-      .image(splashpointLocation.x, splashpointLocation.y, "fish")
-      .setScale(2);
+      .image(splashpointLocation.x - 50, splashpointLocation.y, "fish")
+      .setScale(2)
+      .setAngle(-45)
+      .setVelocityX(10);
+    //no gravity because prop.
     splashPointFish.body.setAllowGravity(false);
 
+    //nake the tile made map tiles marked "collides: true" to collision surfaces. (the water is collides: false, aka you can pass through it.)
     worldLayer.setCollisionByProperty({ collides: true });
     worldLayer.width = 400;
-    //degine width/height
+
+    //define width/height
     const { height, width } = this.game.config;
-    //environment
+
+    //bear spawn
+    //load the idle sprite initially with standard bear collision/bounce.
     bearWalk = this.physics.add.sprite(spawnpoint.x, spawnpoint.y, "bear-idle");
+    bearWalk.setScale(2);
     bearWalk.setBounce(0.2);
     bearWalk.setCollideWorldBounds(false);
+    //attacking off, fish remaining set to 10
+    //todo: manage # of fish in per map by json.
+    //todo: maybe less fish later on.
     bearWalk.attacking = false;
+    bearWalk.hurt = false;
     bearWalk.fish = 10;
 
     //map the animations
@@ -124,6 +163,7 @@ class Level_2 extends Scene {
       frameRate: 5,
       repeat: -1,
     });
+    //water splash animation
     this.anims.create({
       key: "water-splash",
       frames: this.anims.generateFrameNumbers("water-splash", {
@@ -152,7 +192,9 @@ class Level_2 extends Scene {
       frameRate: 5,
       repeat: 0,
     });
-    //bear
+
+    //bear game animations
+    //death animation
     this.anims.create({
       key: "bear-loser",
       frames: this.anims.generateFrameNumbers("bear-loser", {
@@ -208,7 +250,7 @@ class Level_2 extends Scene {
       repeat: -1,
     });
 
-    //penguin
+    //penguin animations
     this.anims.create({
       key: "penguin-idle",
       frames: this.anims.generateFrameNumbers("penguin-idle", {
@@ -243,25 +285,23 @@ class Level_2 extends Scene {
       repeat: 0,
     });
 
-    // animate them
-
-    //bears
-
-    //penguins
+    //spawning penguins
     //empty array to house the penguins
-    bearWalk.hurt = false;
-    bearWalk.setScale(2);
     penguins = [];
-    //produce the penguins at random locations across 1000 pixels
+    //spawnpoints for penguins are declaired in the json map
     spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
 
+    //helper function
     const gameObjectsToObjectPoints = (gameObjects) => {
       return gameObjects.map((gameObject) => gameObject);
     };
+
     const initPenguins = () => {
+      //process the penguin spawn points from the json map using helper
       const penguinSpawns = gameObjectsToObjectPoints(
         map.filterObjects("Objects", (obj) => obj.name === "penguinSpawner")
       );
+      //spawn the actual penguins on the spawn points.
       penguins = penguinSpawns.map((penguinSpawn) =>
         this.physics.add
           .sprite(penguinSpawn.x, penguinSpawn.y, "penguin")
@@ -269,14 +309,9 @@ class Level_2 extends Scene {
           .setOffset(2, 4)
       );
     };
+
     initPenguins();
-    // for (let i = 0; i < initPenguins; i++) {
-    //   let x = Math.floor(Math.random() * 1000);
-    //   let y = 0;
-    //   penguins.push(
-    //     this.physics.add.sprite(x, y, "penguin").setSize(12, 12).setOffset(2, 4)
-    //   );
-    // }
+
     let mainCamera = this.cameras.main;
 
     function endGameHandler(endContext) {
@@ -329,6 +364,41 @@ class Level_2 extends Scene {
       } else if (!bearWalk.hurt && !bearWalk.gameOver) {
         bearWalk.hurt = true;
         bearWalk.play("bear-hit", true);
+
+        const animateMinusFish = () => {
+          let minusFish = this.physics.add
+            .sprite(attachedText.x - 10, attachedText.y + 60, "fish")
+            .setScale(2);
+
+          this.tweens.add({
+            targets: minusFish,
+            angle: -175,
+            duration: 300,
+          });
+
+          const destroyTimer = this.time.addEvent({
+            delay: 2200, // ms
+            callback: () => {
+              minusFish.destroy();
+            },
+            //args: [],
+            loop: false,
+          });
+          const disappearTimer = this.time.addEvent({
+            delay: 1400, // ms
+            callback: () => {
+              this.tweens.add({
+                targets: minusFish,
+                alpha: 0,
+                duration: 450,
+              });
+            },
+            //args: [],
+            loop: false,
+          });
+
+          this.physics.add.collider(worldLayer, minusFish);
+        };
         const timer = this.time.addEvent({
           delay: 650, // ms
           callback: () => {
@@ -340,6 +410,7 @@ class Level_2 extends Scene {
         });
         console.log("bump the bear");
         bearWalk.fish--;
+        animateMinusFish();
         if (healthBar[bearWalk.fish]) {
           healthBar[bearWalk.fish].destroy();
           healthBar.splice(bearWalk.fish, 1);
@@ -386,35 +457,58 @@ class Level_2 extends Scene {
     this.physics.add.overlap(bearWalk, penguins, collisionHandler, null, this);
 
     //camera follows the bear
-
-    scoreText = this.add.text("score: " + deadPenguins, {
-      fontSize: "32px",
-      fill: "#FFF",
+    currentScoreText = this.add.text("score: " + deadPenguins, {
+      font: "12px",
+      fontFamily: "squaredance10",
+      fill: "#A00",
     });
-
-    fishText = this.add.text("fish Remaining: " + bearWalk.fish);
+    scoreText = this.add.text("dead penguins: " + deadPenguins, {
+      font: "12px",
+      fontFamily: "squaredance10",
+      fill: "#A00",
+    });
+    attachedText = this.add.text("");
+    fishText = this.add.text("fish Remaining: " + bearWalk.fish, {
+      font: "12px",
+      fontFamily: "squaredance10",
+      fill: "#A00",
+    });
     this.cameras.main.startFollow(bearWalk);
+
     for (let i = 0; i < bearWalk.fish; i++) {
       // console.log("for loop");
-      if (bearWalk.fish - 2 >= 0) {
-        // console.log(bearWalk);
-        let inv = healthBar.length;
-        healthBar.push(
-          this.add
-            .image(200 + i * 20, 20, "fish")
-            .setScrollFactor(0)
-            .setScale(2)
-        );
-      }
+      // if (bearWalk.fish - 2 >= 0) {
+      // console.log(bearWalk);
+      let inv = healthBar.length;
+      healthBar.push(
+        this.add
+          .image(200 + i * 20, 20, "fish")
+          .setScrollFactor(0)
+          .setScale(2)
+      );
+      // }
     }
+    attachedText = this.add
+      .text(bearWalk.x, bearWalk.y, "", { font: "12px" })
+      .setScrollFactor(1);
   }
   update() {
     thisContext = this;
 
+    console.log(bearWalk.x, bearWalk.y);
+    attachedText.x = bearWalk.x + 15;
+    attachedText.y = bearWalk.y - 60;
+    currentScoreText
+      .setText("score: " + baseScore)
+      .setFont("16px squaredance10");
+    currentScoreText.displayOriginY = -20;
+    currentScoreText.displayOriginX = -20;
     scoreText.setText("dead penguins: " + deadPenguins);
+    scoreText.setFont("16px squaredance10");
     scoreText.displayOriginX = -20;
     fishText.setText("fish remaining: " + bearWalk.fish);
     fishText.displayOriginX = -200;
+    fishText.setFont("16px squaredance10");
     // console.log(bearWalk.fish);
 
     // console.log(this.cameras.main);
@@ -457,6 +551,34 @@ class Level_2 extends Scene {
           penguin.play("penguin-death", true);
           penguin.setVelocityX(0);
           deadPenguins++;
+
+          const minusScoreSpawn = (penguin) => {
+            const minusScoreText = this.add
+              .text(penguin.x, penguin.y - 20, "-250", {
+                font: "12px squaredance10",
+                fill: "#A00",
+              })
+              .setScrollFactor(1);
+            this.tweens.add({
+              targets: minusScoreText,
+              y: minusScoreText.y - 10,
+              duration: 450,
+            });
+            this.tweens.add({
+              targets: minusScoreText,
+              alpha: 0,
+              duration: 700,
+            });
+            let minusScoreTimer = this.time.addEvent({
+              delay: 700, // ms
+              callback: () => {
+                minusScoreText.destroy();
+              },
+              //args: [],
+              loop: false,
+            });
+          };
+          minusScoreSpawn(penguin);
         }
         if (penguin.dead == true) {
           return;
@@ -661,6 +783,7 @@ class Level_2 extends Scene {
                 .play("bear-catching", true)
                 .setSize(16, 16)
                 .setOffset(4, 16);
+              splashPointFish.setVelocityX(0);
               this.tweens.add({
                 targets: splashPointFish,
                 x: bearWalk.x - 25,
@@ -694,6 +817,18 @@ class Level_2 extends Scene {
           const enderTimer = this.time.addEvent({
             delay: animationDelay + 6000, // ms
             callback: () => {
+              attachedText
+                .setText(["I need to", "get these", "fish home!"])
+                .setFont("16px squaredance10");
+              attachedText.alpha = 1;
+              const clearAttachedText = this.time.addEvent({
+                delay: 4000, // ms
+                callback: () => {
+                  attachedText.setText("");
+                },
+                //args: [],
+                loop: false,
+              });
               introAnimation = false;
               bearWalk.play("bear-idle").setSize(16, 16).setOffset(0, 0);
             },

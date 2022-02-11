@@ -7,8 +7,23 @@
       content="width=device-width, initial-scale=1, user-scalable=no"
     />
     <title>Polar Bear Frenzy! V 1.0</title>
+    <link
+      rel="preload"
+      as="font"
+      href="./assets/squaredance10.ttf"
+      type="font/ttf"
+    />
   </head>
+  <style>
+    @font-face {
+      font-family: "squaredance10";
+      src: url("./assets/squaredance10.ttf");
+    }
+  </style>
   <body>
-    <canvas id="game-canvas">You need JS bruh.</canvas>
+    <canvas id="game-canvas" style="font-family: squaredance10">
+      You need JS bruh.
+    </canvas>
+    <p style="font-family: squaredance10">hi</p>
   </body>
 </html>
