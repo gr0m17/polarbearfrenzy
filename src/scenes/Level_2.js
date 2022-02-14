@@ -7,9 +7,20 @@ let bearWalk;
 let score;
 let baseScore;
 let thisContext;
+let joystick;
 let penguins;
+let birds;
 let deadPenguins = 0;
 let penguinCounter = 0;
+let birdMFD = 96;
+let penguinSizeX = 8;
+let penguinSizeY = 12;
+let penguinSizeOffsetX = 4;
+let penguinSizeOffsetY = 4;
+let birdSizeX = 20;
+let birdSizeY = 20;
+let birdSizeOffsetX = 0;
+let birdSizeOffsetY = 0;
 let splashpointLocation;
 let splashPoint;
 let splashPointFish;
@@ -20,9 +31,10 @@ let fishText;
 let attachedText;
 let introAnimation;
 let introAnimationPlaying = false;
+let attackButtonclicked = false;
 let healthBar = [];
-//how many initial penguins?
-const initPenguins = 20;
+
+//how fast they fly when you smack em
 let hitSpeed = 50;
 const penguinVision = 100;
 const minimumFollowDistance = 50;
@@ -66,15 +78,27 @@ class Level_2 extends Scene {
     console.log("loadMap", this.loadMap);
   }
   create() {
+    this.input.addPointer(3);
+
+    function attackButtonHandler(event) {
+      console.log(event.isDown);
+      // console.log(event);
+      if (event.isDown) {
+        attackButtonclicked = true;
+        // console.log(attackButtonclicked);
+      } else {
+        attackButtonclicked = false;
+      }
+    }
     //pointer for context for reasons.
     thisContext = this;
     //todo: manage level looping based on an array of levels
     //loops through the levels after playing through them once.
-    if (this.loadMap && this.loadMap < 6) {
+    if (this.loadMap && this.loadMap < 11) {
       map = this.make.tilemap({ key: `map${this.loadMap}` });
     }
-    if (this.loadMap && this.loadMap >= 6) {
-      map = this.make.tilemap({ key: `map${(this.loadMap % 5) + 1}` });
+    if (this.loadMap && this.loadMap >= 11) {
+      map = this.make.tilemap({ key: `map${(this.loadMap % 10) + 1}` });
     }
     // if somehow you get here without a loadmap then load level 1
     if (!this.loadMap) {
@@ -249,6 +273,16 @@ class Level_2 extends Scene {
       frameRate: 1,
       repeat: -1,
     });
+    // bird animations
+    this.anims.create({
+      key: "bird-flight",
+      frames: this.anims.generateFrameNumbers("bird-flight", {
+        start: 0,
+        end: 3,
+      }),
+      frameRate: 4,
+      repeat: -1,
+    });
 
     //penguin animations
     this.anims.create({
@@ -284,7 +318,10 @@ class Level_2 extends Scene {
       frameRate: 10,
       repeat: 0,
     });
+    //
 
+    //spawning bird(s)
+    birds = [];
     //spawning penguins
     //empty array to house the penguins
     penguins = [];
@@ -295,7 +332,21 @@ class Level_2 extends Scene {
     const gameObjectsToObjectPoints = (gameObjects) => {
       return gameObjects.map((gameObject) => gameObject);
     };
-
+    const initBirds = () => {
+      const birdSpawns = gameObjectsToObjectPoints(
+        map.filterObjects("Objects", (obj) => obj.name === "birdSpawnPoint")
+      );
+      birds = birdSpawns.map((birdSpawn) =>
+        this.physics.add
+          .sprite(birdSpawn.x, birdSpawn.y, "bird-flight")
+          .setSize(birdSizeX, birdSizeY)
+          .setOffset(birdSizeOffsetX, birdSizeOffsetY)
+      );
+      birds.forEach((bird) => {
+        bird.maxFD = Math.floor(Math.random() * 30) + birdMFD;
+        bird.minFD = birdMFD - Math.floor(Math.random() * 30);
+      });
+    };
     const initPenguins = () => {
       //process the penguin spawn points from the json map using helper
       const penguinSpawns = gameObjectsToObjectPoints(
@@ -305,12 +356,13 @@ class Level_2 extends Scene {
       penguins = penguinSpawns.map((penguinSpawn) =>
         this.physics.add
           .sprite(penguinSpawn.x, penguinSpawn.y, "penguin")
-          .setSize(12, 12)
-          .setOffset(2, 4)
+          .setSize(penguinSizeX, penguinSizeY)
+          .setOffset(penguinSizeOffsetX, penguinSizeOffsetY)
       );
     };
 
     initPenguins();
+    initBirds();
 
     let mainCamera = this.cameras.main;
 
@@ -462,6 +514,24 @@ class Level_2 extends Scene {
       fontFamily: "squaredance10",
       fill: "#A00",
     });
+    // console.log(this);
+    joystick = this.plugins.get("rexVirtualJoystick").add(this.scene, {
+      x: 50,
+      y: height - 50,
+      radius: 33,
+      base: this.add.circle(0, 0, 35, 0x2b5967, 0.5),
+      thumb: this.add.circle(0, 0, 20, 0x53a593, 0.5),
+      dir: "8dir",
+      // forceMin: 16,
+      fixed: true,
+      // enable: true
+    });
+    const attackButton = this.add
+      .circle(width - 50, height - 50, 35, 0xff0000, 0.0)
+      .setInteractive()
+      .setScrollFactor(0)
+      .on("pointerdown", attackButtonHandler)
+      .on("pointerup", attackButtonHandler);
     scoreText = this.add.text("dead penguins: " + deadPenguins, {
       font: "12px",
       fontFamily: "squaredance10",
@@ -495,7 +565,7 @@ class Level_2 extends Scene {
   update() {
     thisContext = this;
 
-    console.log(bearWalk.x, bearWalk.y);
+    // console.log(bearWalk.x, bearWalk.y);
     attachedText.x = bearWalk.x + 15;
     attachedText.y = bearWalk.y - 60;
     currentScoreText
@@ -537,6 +607,46 @@ class Level_2 extends Scene {
         bearWalk.set;
       }
     };
+    const birdHandler = () => {
+      birds.forEach((bird, index) => {
+        bird.body.setAllowGravity(false);
+        const birdFlight = () => {
+          var dy = bearWalk.y - bird.y;
+          var dx = bearWalk.x - bird.x;
+          // console.log(dy);
+          if (dy < bird.minFD) {
+            bird.setVelocityY(Math.random() * -15 - 6);
+          }
+          if (dy > bird.maxFD) {
+            bird.setVelocityY(Math.random() * 15);
+          }
+          if (dx > 300) {
+            bird.setVelocityX(30);
+            bird.play("bird-flight", true).setFlipX(false);
+            bird.setSize(birdSizeX, birdSizeY);
+            bird.setOffset(birdSizeOffsetX, birdSizeOffsetY);
+          }
+          if (dx < -300) {
+            bird.setVelocityX(-30);
+            bird.play("bird-flight", true).setFlipX(true);
+            bird.setSize(birdSizeX, birdSizeY);
+            bird.setOffset(birdSizeOffsetX, birdSizeOffsetY);
+          }
+          if (bird.flipX) {
+            bird.setVelocityX(-30);
+            bird.play("bird-flight", true);
+          } else {
+            bird.setVelocityX(30);
+            bird.play("bird-flight", true);
+          }
+        };
+
+        // if nothing else, then birdFlight
+
+        birdFlight();
+      });
+    };
+
     const penguinHandler = () => {
       penguins.forEach((penguin, index) => {
         if (penguin.dead == true) {
@@ -604,20 +714,20 @@ class Level_2 extends Scene {
             if (move == 2) {
               penguin.setVelocityX(-10);
               penguin.play("penguin-walk", true);
-              penguin.setSize(12, 12);
-              penguin.setOffset(2, 4);
+              penguin.setSize(penguinSizeX, penguinSizeY);
+              penguin.setOffset(penguinSizeOffsetX, penguinSizeOffsetX);
             }
             if (move == 3) {
               penguin.setVelocityX(0);
               penguin.play("penguin-idle", true);
-              penguin.setSize(12, 12);
-              penguin.setOffset(2, 4);
+              penguin.setSize(penguinSizeX, penguinSizeY);
+              penguin.setOffset(penguinSizeOffsetX, penguinSizeOffsetY);
             }
             if (move == 4) {
               penguin.setVelocityX(10);
               penguin.play("penguin-walk", true);
-              penguin.setSize(12, 12);
-              penguin.setOffset(2, 4);
+              penguin.setSize(penguinSizeX, penguinSizeY);
+              penguin.setOffset(penguinSizeOffsetX, penguinSizeOffsetY);
             }
             if (move == 5) {
               if (dx < 0) {
@@ -628,8 +738,8 @@ class Level_2 extends Scene {
               }
 
               penguin.play("penguin-walk", true);
-              penguin.setSize(12, 12);
-              penguin.setOffset(2, 4);
+              penguin.setSize(penguinSizeX, penguinSizeY);
+              penguin.setOffset(penguinSizeOffsetX, penguinSizeOffsetY);
             }
           }
         };
@@ -657,8 +767,8 @@ class Level_2 extends Scene {
             } else {
               penguin.setVelocityX(Math.sign(dx) * 15);
               penguin.play("penguin-walk", true);
-              penguin.setSize(12, 12);
-              penguin.setOffset(2, 4);
+              penguin.setSize(penguinSizeX, penguinSizeY);
+              penguin.setOffset(penguinSizeOffsetX, penguinSizeOffsetY);
             }
           }
         }
@@ -667,8 +777,12 @@ class Level_2 extends Scene {
         }
       });
     };
+    const { height, width } = this.game.config;
+
     if (!introAnimation) {
       penguinHandler();
+
+      // console.log(birds);
 
       //
       //
@@ -676,23 +790,49 @@ class Level_2 extends Scene {
       //
       //
 
+      this.joySticks = [joystick];
+      var s = [];
+      for (var i = 0, cnt = this.joySticks.length; i < cnt; i++) {
+        var cursorKeys = this.joySticks[i].createCursorKeys();
+        s.push(`[${i}] Key down: `);
+        for (var name in cursorKeys) {
+          if (cursorKeys[name].isDown) {
+            s.push(`${name} `);
+          }
+        }
+        s.push("\n");
+      }
+      // console.log(s.join(""));
+      //joystick button
+
       var spaceBar = this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE
       );
 
       //bind keys
+      let joyCursors = joystick.createCursorKeys();
       let cursors = this.input.keyboard.createCursorKeys();
-      if (spaceBar.isDown && bearWalk.gameOver) {
+      if ((spaceBar.isDown || joyCursors.down.isDown) && bearWalk.gameOver) {
         this.scene.restart("bootLevel_2", {
           loadMap: 1,
           score: 0,
         });
       }
       //attack spacebar
-      if (spaceBar.isDown && bearWalk.body.onFloor()) {
+      // console.log("attackButtonclicked =", attackButtonclicked);
+      if (
+        (attackButtonclicked == true ||
+          joyCursors.down.isDown ||
+          cursors.down.isDown ||
+          spaceBar.isDown) &&
+        bearWalk.body.onFloor()
+      ) {
         attackHandler();
       }
-      if (cursors.left.isDown && bearWalk.attacking == false) {
+      if (
+        (cursors.left.isDown || joyCursors.left.isDown) &&
+        bearWalk.attacking == false
+      ) {
         //left arrow
         bearWalk.setVelocityX(-160);
         if (bearWalk.body.onFloor()) {
@@ -701,7 +841,10 @@ class Level_2 extends Scene {
           }
         }
         bearWalk.setFlipX(true);
-      } else if (cursors.right.isDown && bearWalk.attacking == false) {
+      } else if (
+        (cursors.right.isDown || joyCursors.right.isDown) &&
+        bearWalk.attacking == false
+      ) {
         //right arrow
         bearWalk.setVelocityX(160);
         if (bearWalk.body.onFloor()) {
@@ -722,13 +865,13 @@ class Level_2 extends Scene {
         }
       }
       // if bear falls off planet, respawn
-      if (bearWalk.body.position.y > 1000) {
+      if (bearWalk.body.position.y > 2000) {
         bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
       }
       //jump
 
       if (
-        cursors.up.isDown &&
+        (cursors.up.isDown || joyCursors.up.isDown) &&
         bearWalk.body.onFloor() &&
         bearWalk.attacking == false
       ) {
@@ -753,8 +896,8 @@ class Level_2 extends Scene {
 
         //locate the splash for casting
         var directionX = bearWalk.x - splashPoint.x;
-        console.log(bearWalk.x);
-        console.log(splashPoint.x);
+        // console.log(bearWalk.x);
+        // console.log(splashPoint.x);
 
         if (directionX < 0) {
           bearWalk.setFlipX(false);
@@ -840,6 +983,7 @@ class Level_2 extends Scene {
       }
     };
     introHandler();
+    birdHandler();
   }
 }
 

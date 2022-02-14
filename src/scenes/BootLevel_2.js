@@ -13,7 +13,13 @@ class BootLevel_2 extends Scene {
     this.load.tilemapTiledJSON("map3", "./assets/level_003.json");
     this.load.tilemapTiledJSON("map4", "./assets/level_004.json");
     this.load.tilemapTiledJSON("map5", "./assets/level_005.json");
+    this.load.tilemapTiledJSON("map6", "./assets/level_006.json");
+    this.load.tilemapTiledJSON("map7", "./assets/level_007.json");
+    this.load.tilemapTiledJSON("map8", "./assets/level_008.json");
+    this.load.tilemapTiledJSON("map9", "./assets/level_009.json");
+    this.load.tilemapTiledJSON("map10", "./assets/level_010.json");
     // Load any assets here from your assets directory
+
     this.load.image("fish", "./assets/fish.png");
     this.load.image("fish-half", "./assets/fish_half.png");
     this.load.image("tiles", "./assets/iceTiles_001.png");
@@ -27,6 +33,10 @@ class BootLevel_2 extends Scene {
     this.load.spritesheet("penguin", "./assets/penguin_walk_001.png", {
       frameWidth: 16,
       frameHeight: 16,
+    });
+    this.load.spritesheet("bird-flight", "./assets/bird_flight_001.png", {
+      frameWidth: 20,
+      frameHeight: 20,
     });
     this.load.spritesheet("penguin-death", "./assets/penguin_hit_001.png", {
       frameWidth: 16,

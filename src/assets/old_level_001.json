@@ -161,59 +161,15 @@
                  "y":188
                 }, 
                 {
-                 "height":20,
-                 "id":26,
-                 "name":"birdSpawnPoint",
+                 "height":0,
+                 "id":25,
+                 "name":"",
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":20,
-                 "x":10.9999833333333,
-                 "y":15.6666666666667
-                }, 
-                {
-                 "height":20,
-                 "id":29,
-                 "name":"birdSpawnPoint",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":20,
-                 "x":27.3333333333333,
-                 "y":145
-                }, 
-                {
-                 "height":20,
-                 "id":30,
-                 "name":"birdSpawnPoint",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":20,
-                 "x":273.666666666667,
-                 "y":153.333333333333
-                }, 
-                {
-                 "height":20,
-                 "id":31,
-                 "name":"birdSpawnPoint",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":20,
-                 "x":144.666666666667,
-                 "y":153.666666666667
-                }, 
-                {
-                 "height":20,
-                 "id":32,
-                 "name":"birdSpawnPoint",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":20,
-                 "x":110.666666666667,
-                 "y":151
+                 "width":0,
+                 "x":325,
+                 "y":56.6666666666667
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -222,7 +178,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":33,
+ "nextobjectid":26,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.7.2",

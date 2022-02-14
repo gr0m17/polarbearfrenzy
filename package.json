@@ -12,7 +12,8 @@
     "dev": "webpack --mode development --entry ./src/game.js --output-path ./dist/"
   },
   "dependencies": {
-    "phaser": "^3.55.2"
+    "phaser": "^3.55.2",
+    "phaser3-rex-plugins": "^1.1.66"
   },
   "devDependencies": {
     "@babel/core": "^7.16.12",
