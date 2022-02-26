@@ -33,12 +33,25 @@ let introAnimation;
 let introAnimationPlaying = false;
 let attackButtonclicked = false;
 let healthBar = [];
-
+let music;
+let musicPlaying = false;
+let stopMusic = false;
+let penguinDeath;
+let bearAttack;
+let seagullSounds;
+let castingSound;
+let splashSound;
+let reelSound;
+let jumpSound;
+let levelComplete;
+let loseSound;
+let bearHit;
 //how fast they fly when you smack em
 let hitSpeed = 50;
 const penguinVision = 100;
 const minimumFollowDistance = 50;
 let spawnpoint = { x: 50, y: 330 };
+let deathline;
 let map;
 class Level_2 extends Scene {
   constructor() {
@@ -49,6 +62,7 @@ class Level_2 extends Scene {
     //setup the intro scene variables
     introAnimation = true;
     introAnimationPlaying = false;
+    stopMusic = false;
     //delete all fish in the healthbar for reset
     if (healthBar) {
       healthBar.length = 0;
@@ -63,7 +77,29 @@ class Level_2 extends Scene {
     if (!this?.loadMap) {
       this.loadMap = 1;
     }
+    let songNumber = Math.ceil(this.loadMap / 2);
 
+    music = this.sound.add(`music${songNumber}`);
+    penguinDeath = this.sound.add("penguinDeath");
+    bearHit = this.sound.add("bearHit");
+    castingSound = this.sound.add("casting");
+    reelSound = this.sound.add("reel");
+    splashSound = this.sound.add("splash");
+    bearAttack = [
+      this.sound.add("bearAttack01"),
+      this.sound.add("bearAttack02"),
+    ];
+    seagullSounds = [
+      this.sound.add("seagull_01"),
+      this.sound.add("seagull_02"),
+      this.sound.add("seagull_03"),
+      this.sound.add("seagull_04"),
+      this.sound.add("seagull_05"),
+      this.sound.add("seagull_06"),
+    ];
+    jumpSound = this.sound.add("jump");
+    levelComplete = this.sound.add("level-complete");
+    loseSound = this.sound.add("lose");
     //recieve current score
     if (data?.data?.score) {
       baseScore = data.data.score;
@@ -77,7 +113,9 @@ class Level_2 extends Scene {
     score = 0;
     console.log("loadMap", this.loadMap);
   }
+
   create() {
+    console.log(music);
     this.input.addPointer(3);
 
     function attackButtonHandler(event) {
@@ -107,8 +145,13 @@ class Level_2 extends Scene {
     //find the spawn point from the json map
     spawnpoint = map.findObject("Objects", (obj) => obj.name === "spawnPoint");
     //print background image
+    deathline = map.findObject("Objects", (obj) => obj.name === "deathline");
     //todo: background images based on json level
-    this.add.image(300, 200, "sky").setScale(3).setScrollFactor(0.3);
+
+    this.add
+      .image(350 + 0, 200, "sky")
+      .setScale(3)
+      .setScrollFactor(0.3);
     //print the map onto the screen from the json map with the loaded iceTiles
     const tileset = map.addTilesetImage("iceTiles_001", "tiles");
     const worldLayer = map.createLayer("Platforms", tileset, 0, 0);
@@ -345,6 +388,7 @@ class Level_2 extends Scene {
       birds.forEach((bird) => {
         bird.maxFD = Math.floor(Math.random() * 30) + birdMFD;
         bird.minFD = birdMFD - Math.floor(Math.random() * 30);
+        bird.maxYD = 450;
       });
     };
     const initPenguins = () => {
@@ -367,6 +411,11 @@ class Level_2 extends Scene {
     let mainCamera = this.cameras.main;
 
     function endGameHandler(endContext) {
+      //stop the music from looping, then prepare to play the next song
+      stopMusic = true;
+      music.stop();
+      // todo: add level end sound play to transition
+
       if (!endContext) {
         endContext = thisContext;
       }
@@ -414,9 +463,10 @@ class Level_2 extends Scene {
         });
         penguin.dead = true;
       } else if (!bearWalk.hurt && !bearWalk.gameOver) {
+        bearHit.play();
+
         bearWalk.hurt = true;
         bearWalk.play("bear-hit", true);
-
         const animateMinusFish = () => {
           let minusFish = this.physics.add
             .sprite(attachedText.x - 10, attachedText.y + 60, "fish")
@@ -462,14 +512,18 @@ class Level_2 extends Scene {
         });
         console.log("bump the bear");
         bearWalk.fish--;
+
         animateMinusFish();
         if (healthBar[bearWalk.fish]) {
           healthBar[bearWalk.fish].destroy();
           healthBar.splice(bearWalk.fish, 1);
         }
         if (bearWalk.fish <= 0) {
+          stopMusic = true;
+          music.stop();
           bearWalk.gameOver = true;
           bearWalk.disableBody(true, true);
+          loseSound.play();
           drawGameOver(
             deadPenguins,
             bearWalk.fish,
@@ -484,13 +538,16 @@ class Level_2 extends Scene {
 
     const exitHandler = (bear, exit, context) => {
       console.log(context);
+
       console.log("collision");
-      // this.scene.pause();
+
       console.log("thisContext:", thisContext);
       if (!score) {
         score = 0;
       }
       score = +baseScore + bearWalk.fish * 1000 - deadPenguins * 250;
+      music.pause();
+      levelComplete.play();
       drawEndbox(
         deadPenguins,
         bearWalk.fish,
@@ -552,7 +609,7 @@ class Level_2 extends Scene {
       let inv = healthBar.length;
       healthBar.push(
         this.add
-          .image(200 + i * 20, 20, "fish")
+          .image(this.game.config.width - 200 + i * 20, 20, "fish")
           .setScrollFactor(0)
           .setScale(2)
       );
@@ -564,7 +621,12 @@ class Level_2 extends Scene {
   }
   update() {
     thisContext = this;
-
+    musicPlaying = music.seek;
+    if (musicPlaying == 0 && stopMusic == false) {
+      music.stop();
+      music.play();
+    }
+    console.log(musicPlaying);
     // console.log(bearWalk.x, bearWalk.y);
     attachedText.x = bearWalk.x + 15;
     attachedText.y = bearWalk.y - 60;
@@ -577,7 +639,7 @@ class Level_2 extends Scene {
     scoreText.setFont("16px squaredance10");
     scoreText.displayOriginX = -20;
     fishText.setText("fish remaining: " + bearWalk.fish);
-    fishText.displayOriginX = -200;
+    fishText.displayOriginX = -this.game.config.width + 200;
     fishText.setFont("16px squaredance10");
     // console.log(bearWalk.fish);
 
@@ -597,6 +659,7 @@ class Level_2 extends Scene {
           //args: [],
           loop: false,
         });
+        bearAttack[Math.floor(Math.random() * bearAttack.length)].play();
         bearWalk.play("bear-attack");
         bearWalk.setSize(12, 16);
         if (bearWalk.flipX == true) {
@@ -620,13 +683,13 @@ class Level_2 extends Scene {
           if (dy > bird.maxFD) {
             bird.setVelocityY(Math.random() * 15);
           }
-          if (dx > 300) {
+          if (dx > bird.maxYD) {
             bird.setVelocityX(30);
             bird.play("bird-flight", true).setFlipX(false);
             bird.setSize(birdSizeX, birdSizeY);
             bird.setOffset(birdSizeOffsetX, birdSizeOffsetY);
           }
-          if (dx < -300) {
+          if (dx < -bird.maxYD) {
             bird.setVelocityX(-30);
             bird.play("bird-flight", true).setFlipX(true);
             bird.setSize(birdSizeX, birdSizeY);
@@ -642,7 +705,14 @@ class Level_2 extends Scene {
         };
 
         // if nothing else, then birdFlight
-
+        // seagull sounds
+        if (penguinCounter % 100 == 0) {
+          if (Math.floor(Math.random() * 8) > 5) {
+            seagullSounds[
+              Math.floor(Math.random() * seagullSounds.length)
+            ].play();
+          }
+        }
         birdFlight();
       });
     };
@@ -659,6 +729,7 @@ class Level_2 extends Scene {
           penguin.dyingAnim = true;
           penguin.dying = false;
           penguin.play("penguin-death", true);
+          penguinDeath.play();
           penguin.setVelocityX(0);
           deadPenguins++;
 
@@ -812,7 +883,10 @@ class Level_2 extends Scene {
       //bind keys
       let joyCursors = joystick.createCursorKeys();
       let cursors = this.input.keyboard.createCursorKeys();
-      if ((spaceBar.isDown || joyCursors.down.isDown) && bearWalk.gameOver) {
+      if (
+        (spaceBar.isDown || joyCursors.down.isDown || cursors.down.isDown) &&
+        bearWalk.gameOver
+      ) {
         this.scene.restart("bootLevel_2", {
           loadMap: 1,
           score: 0,
@@ -865,7 +939,9 @@ class Level_2 extends Scene {
         }
       }
       // if bear falls off planet, respawn
-      if (bearWalk.body.position.y > 2000) {
+
+      //if bear falls past the deathline, take a fish and respawn at spawnpoint.
+      if (bearWalk.body.position.y > deathline.y) {
         bearWalk.setPosition(spawnpoint.x, spawnpoint.y - 70);
       }
       //jump
@@ -875,6 +951,7 @@ class Level_2 extends Scene {
         bearWalk.body.onFloor() &&
         bearWalk.attacking == false
       ) {
+        jumpSound.play();
         bearWalk.setVelocityY(-250);
         if (bearWalk.hurt == false) {
           bearWalk.play("bear-jump", true);
@@ -907,12 +984,17 @@ class Level_2 extends Scene {
         }
 
         if (introAnimationPlaying == false) {
+          //play casting sound
+          castingSound.play();
+          //play casting animation
           bearWalk.play("bear-casting", true).setSize(16, 16).setOffset(4, 16);
           const castingTimer = this.time.addEvent({
             delay: animationDelay + 100, // ms
             callback: () => {
               // bearWalk.setImmovable(true).body.setAllowGravity(false);
               splashPoint.play("water-splash", true);
+              splashSound.play();
+              // todo: play splash sound
             },
             //args: [],
             loop: false,
@@ -921,6 +1003,7 @@ class Level_2 extends Scene {
           const catchingTimer = this.time.addEvent({
             delay: animationDelay + 4000, // ms
             callback: () => {
+              reelSound.play();
               splashPoint.body.destroy();
               bearWalk
                 .play("bear-catching", true)

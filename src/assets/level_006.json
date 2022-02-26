@@ -339,6 +339,17 @@
                  "width":0,
                  "x":383.25,
                  "y":751.25
+                }, 
+                {
+                 "height":20,
+                 "id":55,
+                 "name":"deathline",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":20,
+                 "x":483.898462971588,
+                 "y":801.551001397298
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -347,7 +358,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":55,
+ "nextobjectid":56,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.7.2",

@@ -8,6 +8,8 @@ class BootLevel_2 extends Scene {
     this.gameData = data;
   }
   preload() {
+    //import map jsons
+
     this.load.tilemapTiledJSON("map1", "./assets/level_001.json");
     this.load.tilemapTiledJSON("map2", "./assets/level_002.json");
     this.load.tilemapTiledJSON("map3", "./assets/level_003.json");
@@ -18,7 +20,36 @@ class BootLevel_2 extends Scene {
     this.load.tilemapTiledJSON("map8", "./assets/level_008.json");
     this.load.tilemapTiledJSON("map9", "./assets/level_009.json");
     this.load.tilemapTiledJSON("map10", "./assets/level_010.json");
-    // Load any assets here from your assets directory
+
+    //sound assets
+
+    this.load.audio("music1", "./assets/sound/game_music_1.wav");
+    this.load.audio("music2", "./assets/sound/game_music_2.wav");
+    this.load.audio("music3", "./assets/sound/game_music_3.wav");
+    this.load.audio("music4", "./assets/sound/game_music_4.wav");
+    this.load.audio("music5", "./assets/sound/game_music_5.wav");
+
+    this.load.audio("seagull_01", "./assets/sound/seagull_01.wav");
+    this.load.audio("seagull_02", "./assets/sound/seagull_02.wav");
+    this.load.audio("seagull_03", "./assets/sound/seagull_03.wav");
+    this.load.audio("seagull_04", "./assets/sound/seagull_04.wav");
+    this.load.audio("seagull_05", "./assets/sound/seagull_05.wav");
+    this.load.audio("seagull_06", "./assets/sound/seagull_06.wav");
+    this.load.audio("seagull_07", "./assets/sound/seagull_07.wav");
+
+    this.load.audio("bearAttack01", "./assets/sound/bearAttack_01.ogg");
+    this.load.audio("bearAttack02", "./assets/sound/bearAttack_02.ogg");
+    this.load.audio("bearHit", "./assets/sound/bearHit_01.wav");
+    this.load.audio("jump", "./assets/sound/jump_03.wav");
+    this.load.audio("penguinDeath", "./assets/sound/penguin_death_01.wav");
+
+    this.load.audio("splash", "./assets/sound/splash_01.mp3");
+    this.load.audio("casting", "./assets/sound/casting_01.wav");
+    this.load.audio("reel", "./assets/sound/reel_01.wav");
+    this.load.audio("level-complete", "./assets/sound/levelComplete_01.wav");
+    this.load.audio("lose", "./assets/sound/loseMusic_01.wav");
+
+    //sprite assets
 
     this.load.image("fish", "./assets/fish.png");
     this.load.image("fish-half", "./assets/fish_half.png");

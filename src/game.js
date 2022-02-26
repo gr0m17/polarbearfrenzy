@@ -19,7 +19,7 @@ const config = {
     ],
   },
   type: Phaser.WEB_GL,
-  width: 400,
+  width: 600,
   height: 300,
   scale: {
     zoom: 2,
