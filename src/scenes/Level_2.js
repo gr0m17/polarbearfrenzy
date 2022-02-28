@@ -72,6 +72,11 @@ class Level_2 extends Scene {
     console.log("init", data);
     //process data payload, if any.
     //what map is this to be?
+    if (data?.loadMap) {
+      this.loadMap = data.loadMap;
+
+      data.data = { loadMap: data.loadMap, score: data.score };
+    }
     if (data?.data?.loadMap) this.loadMap = data.data.loadMap;
     //if no map, map == 1
     if (!this?.loadMap) {
@@ -132,10 +137,10 @@ class Level_2 extends Scene {
     thisContext = this;
     //todo: manage level looping based on an array of levels
     //loops through the levels after playing through them once.
-    if (this.loadMap && this.loadMap < 11) {
+    if (this.loadMap && this.loadMap < 10) {
       map = this.make.tilemap({ key: `map${this.loadMap}` });
     }
-    if (this.loadMap && this.loadMap >= 11) {
+    if (this.loadMap && this.loadMap >= 10) {
       map = this.make.tilemap({ key: `map${(this.loadMap % 10) + 1}` });
     }
     // if somehow you get here without a loadmap then load level 1
@@ -424,7 +429,7 @@ class Level_2 extends Scene {
       }
       score = baseScore + bearWalk.fish * 1000 - deadPenguins * 250;
 
-      endContext.scene.start("bootLevel_2", {
+      endContext.scene.restart({
         loadMap: endContext.loadMap + 1,
         score: score,
       });
@@ -626,7 +631,7 @@ class Level_2 extends Scene {
       music.stop();
       music.play();
     }
-    console.log(musicPlaying);
+    // console.log(musicPlaying);
     // console.log(bearWalk.x, bearWalk.y);
     attachedText.x = bearWalk.x + 15;
     attachedText.y = bearWalk.y - 60;
@@ -887,7 +892,9 @@ class Level_2 extends Scene {
         (spaceBar.isDown || joyCursors.down.isDown || cursors.down.isDown) &&
         bearWalk.gameOver
       ) {
-        this.scene.restart("bootLevel_2", {
+        console.log("restarting");
+        baseScore = 0;
+        this.scene.restart({
           loadMap: 1,
           score: 0,
         });

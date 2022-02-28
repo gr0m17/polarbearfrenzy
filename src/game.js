@@ -3,7 +3,7 @@ import Phaser, { Game } from "phaser";
 import VirtualJoystickPlugin from "phaser3-rex-plugins/plugins/virtualjoystick-plugin.js";
 import Level_2 from "./scenes/Level_2";
 import BootLevel_2 from "./scenes/BootLevel_2";
-
+import TitleScene from "./scenes/TitleScene_1";
 const canvas = document.getElementById("game-canvas");
 const config = {
   input: {
@@ -35,7 +35,7 @@ const config = {
       debug: false,
     },
   },
-  scene: [BootLevel_2, Level_2],
+  scene: [BootLevel_2, TitleScene, Level_2],
 };
 
 const game = new Game(config);

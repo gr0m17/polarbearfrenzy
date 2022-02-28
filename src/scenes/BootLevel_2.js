@@ -8,6 +8,67 @@ class BootLevel_2 extends Scene {
     this.gameData = data;
   }
   preload() {
+    //loading progress bar
+    const { height, width } = this.game.config;
+    let progressBar = this.add.graphics();
+    let progressBox = this.add.graphics();
+    // draw the box
+    progressBox.fillStyle(0x222222, 0.8);
+    progressBox.fillRect(width / 4, height / 2, 320, 50);
+    //loading text
+    const loadingText = this.make.text({
+      x: width / 2,
+      y: height / 2 - 40,
+      text: "Polar bear frenzy loading...",
+      style: {
+        fill: "#ffffff",
+      },
+    });
+    loadingText.setOrigin(0.5, 0.5).setFont("16px squaredance10");
+
+    //text area for asset name
+    const assetText = this.make.text({
+      x: width / 2,
+      y: height / 2 - 20,
+      text: "",
+      style: {
+        fill: "#ffffff",
+      },
+    });
+    assetText.setOrigin(0.5, 0.5).setFont("16px squaredance10");
+    //percentage number text
+    let percentText = this.make.text({
+      x: width / 2,
+      y: height / 2 + 25,
+      text: "0%",
+      style: {
+        fill: "#ffffff",
+      },
+    });
+    percentText.setOrigin(0.5, 0.5).setFont("16px squaredance10");
+
+    //redraws the progress bar
+    this.load.on("progress", function (value) {
+      percentText.setText(parseInt(value * 100) + " percent");
+      progressBar.clear();
+      progressBar.fillStyle(0xffffff, 1);
+
+      progressBar.fillRect(width / 4, height / 2, 300 * value, 50);
+    });
+    //update the asset name
+    this.load.on("fileprogress", function (file) {
+      assetText.setText("Loading asset: " + file.key);
+    });
+
+    //destroy all the loading elements
+    this.load.on("complete", function () {
+      progressBar.destroy();
+      progressBox.destroy();
+      loadingText.destroy();
+      percentText.destroy();
+      assetText.destroy();
+    });
+
     //import map jsons
 
     this.load.tilemapTiledJSON("map1", "./assets/level_001.json");
@@ -35,7 +96,6 @@ class BootLevel_2 extends Scene {
     this.load.audio("seagull_04", "./assets/sound/seagull_04.wav");
     this.load.audio("seagull_05", "./assets/sound/seagull_05.wav");
     this.load.audio("seagull_06", "./assets/sound/seagull_06.wav");
-    this.load.audio("seagull_07", "./assets/sound/seagull_07.wav");
 
     this.load.audio("bearAttack01", "./assets/sound/bearAttack_01.ogg");
     this.load.audio("bearAttack02", "./assets/sound/bearAttack_02.ogg");
@@ -128,7 +188,14 @@ class BootLevel_2 extends Scene {
   }
 
   create() {
-    this.scene.launch("level_2", { data: this.gameData });
+    //todo: launch intro screen
+    console.log(this.scene);
+    this.scene.launch("titleScreen");
+    // if (!this.startGame) {
+    // } else {
+    //   console.log("this.scene.launch", this.gameData);
+    //   this.scene.launch("level_2", { data: this.gameData });
+    //   }
   }
 }
 
